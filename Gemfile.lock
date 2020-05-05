@@ -1,0 +1,61 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    backports (3.17.1)
+    better_errors (2.7.0)
+      coderay (>= 1.0.0)
+      erubi (>= 1.0.0)
+      rack (>= 0.9.0)
+    binding_of_caller (0.8.0)
+      debug_inspector (>= 0.0.1)
+    coderay (1.1.2)
+    concurrent-ruby (1.1.6)
+    debug_inspector (0.0.3)
+    dotenv (2.7.5)
+    erubi (1.9.0)
+    faker (2.11.0)
+      i18n (>= 1.6, < 2)
+    geocoder (1.6.3)
+    hashids (1.0.5)
+    i18n (1.8.2)
+      concurrent-ruby (~> 1.0)
+    mail (2.7.1)
+      mini_mime (>= 0.1.1)
+    mini_mime (1.0.2)
+    multi_json (1.14.1)
+    mustermann (1.1.1)
+      ruby2_keywords (~> 0.0.1)
+    rack (2.2.2)
+    rack-protection (2.0.8.1)
+      rack
+    ruby2_keywords (0.0.2)
+    sinatra (2.0.8.1)
+      mustermann (~> 1.0)
+      rack (~> 2.0)
+      rack-protection (= 2.0.8.1)
+      tilt (~> 2.0)
+    sinatra-contrib (2.0.8.1)
+      backports (>= 2.8.2)
+      multi_json
+      mustermann (~> 1.0)
+      rack-protection (= 2.0.8.1)
+      sinatra (= 2.0.8.1)
+      tilt (~> 2.0)
+    tilt (2.0.10)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  better_errors
+  binding_of_caller
+  dotenv
+  faker
+  geocoder
+  hashids
+  mail
+  sinatra
+  sinatra-contrib
+
+BUNDLED WITH
+   2.1.4

@@ -1,0 +1,67 @@
+<script>
+  new ClipboardJS('.btn', {
+      text: function() {
+          return document.querySelector('input').value;
+      }
+  });
+</script>
+
+<input type="hidden" id="email" value="<%= params[:q] %>@<%= MAIL_DOMAIN %>">
+
+<h3>
+  Browse inbox.
+  <button class="btn btn-light" data-clipboard-target="#email" title="Copy to clipboard">
+      <img src="/copypaste-xs.png" width="15" alt="Copy to clipboard">
+  </button>
+</h3>
+
+<p>
+  <span class="red">&gt;</span> You are browsing the mailbox for <a href="/inbox?q=<%= params[:q] %>"><%= mailbox %></a>.
+  <br />
+  <span class="red">&gt;</span> We have <span class="badge badge-pill badge-secondary"><%= emails.count %></span> message<%= emails.count == 1 ? '' : 's' %> for you to read.
+</p>
+
+<% if emails.empty? %>
+
+<br />
+
+<div class="alert alert-secondary" role="alert">
+  Sorry &mdash; this inbox is empty. Last checked at <%= timestamp(Time.now.to_s) %>.
+</div>
+
+<% else %>
+
+<br />
+
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>Subject</th>
+      <th>Sender</th>
+      <th>Timestamp</th>
+      <th>Message ID</th>
+    </tr>
+  </thead>
+  <tbody>
+  <% emails.reverse.slice(0, INBOX_SIZE).each_with_index.map do |email, i| %>
+    <tr>
+      <td>
+        <img src="/envelope-xs.png" width="18" alt="" />
+        <a href="/email/<%= encrypt(uids[i]) %>"><%= qp(email.subject) %></a>
+      </td>
+      <td>
+        <%= email.from[0].name ? qp(email.from[0].name) : 'Unknown' %>
+        &lt;<a href="mailto:<%= email.from[0].mailbox %>@<%= email.from[0].host %>"><%= email.from[0].mailbox %>@<%= email.from[0].host %></a>&gt;
+      </td>
+      <td><%= timestamp(email.date) %></td>
+      <td><%= digest(email.message_id) %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+
+<% end %>
+
+<br />
+
+<button class="btn btn-light" onClick="javascript:window.history.back()">Back</button>

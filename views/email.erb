@@ -1,0 +1,55 @@
+<h3>Read email.</h3>
+
+<p>
+  <span class="red">&gt;</span> Subject: <%= qp(mail.subject) %><br />
+  <span class="red">&gt;</span> Sender:
+    <% if !mail.from[0].nil? %>
+    <a href="<%= qp(mail.from[0]) %>"><%= qp(mail.from[0]) %></a>
+    <% else %>
+    <%= 'Unknown' %>
+    <% end %>
+  <br />
+  <span class="red">&gt;</span> Timestamp: <%= timestamp(mail.date.to_s) %><br />
+  <span class="red">&gt;</span> Message ID: <span class="mono"><%= digest(mail.message_id) %></span>
+</p>
+
+<% if mail.text_part.nil? %>
+
+<p>
+  Please see below the email message (open in <a href="/preview/<%= params[:uid] %>" target="_blank">new</a> window):
+</<p>
+
+<div>
+  <iframe class="borders" width="100%" height="300" src="/preview/<%= params[:uid] %>"></iframe>
+</div>
+
+<% else %>
+
+<p>
+  Please see below the email message (<a href="/preview/<%= params[:uid] %>" target="_blank">open</a> in new window or <a href="#" onClick="togglePreview();">toggle</a> preview):
+</<p>
+
+<script>
+function togglePreview() {
+  var iframe = document.getElementById('preview');
+  if (iframe.src == 'about:blank') {
+    iframe.src = '/preview/<%= params[:uid] %>';
+  }
+  $('#html').toggle();
+  $('#text').toggle();
+}
+</script>
+
+<div id="text" style="display: block">
+  <pre class="preview borders"><%= mail.text_part.decoded %></pre>
+</div>
+
+<div id="html" style="display: none">
+  <iframe id="preview" width="100%" height="300" src="about:blank"></iframe>
+</div>
+
+<% end %>
+
+<br />
+
+<button class="btn btn-light" onClick="javascript:window.history.back();">Back</button>

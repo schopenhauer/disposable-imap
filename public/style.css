@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css?family=Noto+Serif+SC');
+@import url('https://fonts.googleapis.com/css?family=Monoton');
+
+body {
+  font-family: 'Hack', serif;
+  font-size: 14px;
+  background: #f5f5f5;
+}
+
+.box {
+  height: 100%;
+  margin: 2%;
+  padding: 4%;
+  background: #ffffff;
+}
+
+h1 {
+  font-family: 'Monoton', serif;
+  font-size: 55px;
+}
+
+h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 25px;
+}
+
+h3 {
+  font-size: 22px;
+  color: #FF5023;
+  padding-bottom: 10px;
+}
+
+hr {
+	border-top: 2px dotted #cccccc;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+a:link, a:visited, a:active {
+  color: #727272;
+  text-decoration: none;
+}
+
+a:hover {
+  -moz-transition: all .2s ease-in;
+  -o-transition: all .2s ease-in;
+  -webkit-transition: all .2s ease-in;
+  transition: all .2s ease-in;
+  color: #FF5023;
+  text-decoration: none;
+}
+
+.red {
+  color: #FF5023;
+}
+
+.gray {
+  color: #A0A0A0;
+}
+
+.preview {
+  font-size: 13px;
+  padding: 15px;
+  background-color: #f1f1f1;
+}
+
+.borders {
+  border: 2px solid #cccccc;
+}
+
+.copyleft {
+  font: 18px Arial, sans-serif;
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+/* Sticky footer styles */
+
+@media screen and (min-width: 900px) {
+  html {
+    position: relative;
+    min-height: 100%;
+  }
+
+  body {
+    margin-bottom: 50px; /* Margin bottom by footer height */
+  }
+
+  footer {
+    position: absolute;
+    font-size: 14px;
+    bottom: 0;
+    width: 100%;
+    height: 50px; /* Set the fixed height of the footer here */
+    line-height: 50px; /* Vertically center the text there */
+    background-color: #e2e2e2;
+    text-align: center;
+  }
+}
+
+/* Mobile only */
+
+@media screen and (max-width: 900px) {
+  footer {
+    visibility: hidden;
+  }
+  #logo {
+    visibility: hidden;
+  }
+}

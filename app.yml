@@ -1,0 +1,6 @@
+apps:
+  - script: ./app.rb
+    name: 'disposable-imap'
+    instances: 1
+    exec_interpreter: ruby
+    exec_mode: fork_mode

@@ -1,0 +1,13 @@
+<h3>Oops, we're sorry.</h3>
+
+<p>
+  <% if defined? msg %>
+  <%= msg %>
+  <% else %>
+  <%= 'Error 500: Something went wrong and we are very sorry about this. Please try again later.' %>
+  <% end %>
+</p>
+
+<br />
+
+<button class="btn btn-light" onClick="javascript:window.history.back();">Back</button>

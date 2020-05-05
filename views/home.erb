@@ -1,0 +1,32 @@
+<h3>Welcome, dear Stranger.</h3>
+
+<p>
+  We give you a disposable email address, which can be used, e.g. for registering a new account on untrusted websites.
+  You receive spam emails on your disposable email address and your real email address stays safe.
+</p>
+
+<p>
+  Do you need some creativity? Why not browse the inbox of a randomly generated <a href="/random/user">name</a>,
+  <a href="/random/number">number</a>, <a href="/random/ipv4">ipv4</a>, <a href="/random/md5">md5</a>, <a href="/random/sha256">sha256</a>,
+  <a href="/random/planet">planet</a>, <a href="/random/philosopher">philosopher</a> or <a href="/random/droid">droid</a> address?
+</p>
+
+<br />
+
+<form method="GET" action="/inbox" class="form-inline">
+  <div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Enter mailbox..." aria-label="Mailbox" aria-describedby="domain" name="q" value="hello" autofocus>
+    <div class="input-group-append">
+      <span class="input-group-text" id="domain"><span class="red">@</span>&nbsp;<%= MAIL_DOMAIN %></span>
+    </div>
+  </div>
+  <div class="input-group mx-sm-2 mb-3">
+    <button type="submit" class="btn btn-light">Browse</button>
+  </div>
+</form>
+
+<br />
+<p>
+  Truly yours,<br />
+  Tony Stark
+</p>
