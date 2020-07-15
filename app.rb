@@ -125,7 +125,7 @@ get '/random/:type' do
   else
     r = Faker::Internet.user_name
   end
-  redirect '/inbox?q=' + r.to_s.gsub(' ', '')
+  redirect '/inbox?q=' + r.to_s.gsub(' ', '').downcase
 end
 
 get '/*' do
