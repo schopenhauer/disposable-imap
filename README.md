@@ -1,6 +1,6 @@
 # disposable-imap
 
-<img src="https://github.com/schopenhauer/disposable-imap/blob/master/public/email.png" align="right" width="40" />This app allows you to browse an email mailbox configured with a _catch-all_ email address on an [IMAP](https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol) server. This will give you an unlimited number of disposable email addresses.
+<img src="https://github.com/schopenhauer/disposable-imap/blob/main/public/email.png" align="right" width="40" />This app allows you to browse an email mailbox configured with a _catch-all_ email address on an [IMAP](https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol) server. This will give you an unlimited number of disposable email addresses.
 
 ## Usage
 
