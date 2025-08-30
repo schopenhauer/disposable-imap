@@ -8,18 +8,19 @@ First, you have to set up a _catch-all_ mailbox on an IMAP server (such as [dove
 
 Next, you have to define the following environment variables on your system:
 
-- `MAIL_DOMAIN` (default value: `example.com`)
-- `MAIL_SERVER` (default value: `localhost`)
-- `MAIL_PORT` (default value: `993`)
+- `MAIL_DOMAIN`
+- `MAIL_SERVER`
 - `MAIL_USERNAME`
 - `MAIL_PASSWORD`
+- `MAIL_PORT` (default value: `993`)
+- `MAIL_USE_SSL` (default value: `true`, set to `false` to disable SSL/TLS)
 
 Optional configuration:
 
-- `INBOX_SIZE` (optional, default value: 15)
-- `LOG_SIZE` (optional, default value: 15)
+- `INBOX_SIZE` (default value: 15)
+- `LOG_SIZE` (default value: 15)
 
-Alternatively, you can also use a `.env` file in the application root folder.
+Alternatively, you can use a `.env` file in the application root folder.
 
 Finally, install the necessary Ruby gems and run the app.
 

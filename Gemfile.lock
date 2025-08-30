@@ -9,6 +9,7 @@ GEM
     binding_of_caller (1.0.1)
       debug_inspector (>= 1.2.0)
     concurrent-ruby (1.3.5)
+    connection_pool (2.5.3)
     csv (3.3.5)
     date (3.4.1)
     debug_inspector (1.2.0)
@@ -73,6 +74,7 @@ PLATFORMS
 DEPENDENCIES
   better_errors
   binding_of_caller
+  connection_pool
   dotenv
   faker
   geocoder

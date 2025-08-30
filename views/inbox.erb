@@ -43,11 +43,13 @@
     </tr>
   </thead>
   <tbody>
-  <% emails.reverse.slice(0, INBOX_SIZE).each_with_index.map do |email, i| %>
+  <% emails.each do |email_data| %>
+  <% email = email_data[:envelope] %>
+  <% uid = email_data[:uid] %>
     <tr>
       <td>
         <img src="/envelope-xs.png" width="18" alt="" />
-        <a href="/email/<%= encrypt(uids[i]) %>"><%= qp(email.subject) %></a>
+        <a href="/email/<%= encrypt(uid) %>"><%= qp(email.subject) %></a>
       </td>
       <td>
         <%= email.from[0].name ? qp(email.from[0].name) : 'Unknown' %>

@@ -9,6 +9,8 @@ require 'faker'
 require 'geocoder'
 require 'hashids'
 require 'securerandom'
+require 'connection_pool'
+require 'digest'
 
 configure :development do
   use BetterErrors::Middleware
@@ -18,16 +20,36 @@ end
 configure do
   MAIL_DOMAIN = ENV['MAIL_DOMAIN'] || 'example.com'
   MAIL_SERVER = ENV['MAIL_SERVER'] || 'localhost'
-  MAIL_PORT = ENV['MAIL_PORT'] || 993
+  MAIL_PORT = ENV['MAIL_PORT']&.to_i || 993
+  MAIL_USE_SSL = ENV['MAIL_USE_SSL']&.downcase != 'false' # default to true
   MAIL_USERNAME = ENV['MAIL_USERNAME']
   MAIL_PASSWORD = ENV['MAIL_PASSWORD']
   LOG_FILE = ENV['LOG_FILE'] || 'history.log'
-  LOG_SIZE = ENV['LOG_SIZE'] || 15
-  # TODO: AUTO_PURGE = ENV['AUTO_PURGE'] || 30
-  INBOX_SIZE = ENV['INBOX_SIZE'] || 15
+  LOG_SIZE = ENV['LOG_SIZE']&.to_i || 15
+  INBOX_SIZE = ENV['INBOX_SIZE']&.to_i || 15
   DATETIME_FORMAT = '%e %b %Y at %H:%M %Z'
   EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i
   SALT = SecureRandom.hex
+  
+  # Validate required configuration
+  unless MAIL_USERNAME && MAIL_PASSWORD
+    puts "ERROR: MAIL_USERNAME and MAIL_PASSWORD environment variables are required"
+    exit 1
+  end
+  
+  puts "Connecting to IMAP server: #{MAIL_SERVER}:#{MAIL_PORT} (SSL: #{MAIL_USE_SSL})"
+  
+  # IMAP connection pool for better performance
+  begin
+    IMAP_POOL = ConnectionPool.new(size: 5, timeout: 5) do
+      create_imap_connection
+    end
+    puts "IMAP connection pool initialized successfully"
+  rescue StandardError => e
+    puts "ERROR: Failed to initialize IMAP connection pool: #{e.message}"
+    puts "Supported authentication mechanisms: #{get_imap_capabilities}"
+    exit 1
+  end
 end
 
 set :public_folder, 'public'
@@ -47,24 +69,29 @@ end
 
 get '/inbox/:q' do
   emails = []
-  uids = []
   mailbox = params[:q] + '@' + MAIL_DOMAIN
-  if !(EMAIL_REGEX.match(mailbox)).nil?
-    imap = connect()
-    if !imap.nil?
-      imap.search(['TO', mailbox]).each do |uid|
-        emails << imap.fetch(uid, 'ENVELOPE')[0].attr['ENVELOPE']
-        uids << uid
+  
+  if EMAIL_REGEX.match(mailbox)
+    begin
+      IMAP_POOL.with do |imap|
+        search_results = imap.search(['TO', mailbox])
+        search_results.each do |uid|
+          envelope = imap.fetch(uid, 'ENVELOPE')[0].attr['ENVELOPE']
+          emails << { envelope: envelope, uid: uid }
+        end
       end
       log(mailbox, request.ip, request.user_agent)
-      imap.logout
-      imap.disconnect
+      
+      # Sort by date (newest first) and limit
+      emails.sort! { |a, b| (b[:envelope].date || '') <=> (a[:envelope].date || '') }
+      emails = emails.first(INBOX_SIZE.to_i)
+      
       erb :inbox, locals: {
         mailbox: mailbox,
-        emails: emails,
-        uids: uids
+        emails: emails
       }
-    else
+    rescue StandardError => e
+      puts "IMAP error: #{e.message}"
       erb :error
     end
   else
@@ -75,32 +102,47 @@ get '/inbox/:q' do
 end
 
 get '/email/:uid' do
-  imap = connect()
-  uid = decrypt(params[:uid]).to_i
-  email = imap.fetch(uid, ['ENVELOPE', 'RFC822'])[0]
-  mail = Mail.read_from_string(email.attr['RFC822'])
-  imap.logout
-  imap.disconnect
-  erb :email, locals: {
-    mail: mail
-  }
+  begin
+    uid = decrypt(params[:uid]).to_i
+    IMAP_POOL.with do |imap|
+      email = imap.fetch(uid, ['ENVELOPE', 'RFC822'])[0]
+      mail = Mail.read_from_string(email.attr['RFC822'])
+      erb :email, locals: { mail: mail }
+    end
+  rescue StandardError => e
+    puts "Email fetch error: #{e.message}"
+    erb :error
+  end
 end
 
 get '/preview/:uid' do
-  imap = connect()
-  uid = decrypt(params[:uid]).to_i
-  email = imap.fetch(uid, ['ENVELOPE', 'RFC822'])[0]
-  mail = Mail.read_from_string(email.attr['RFC822'])
-  imap.logout
-  imap.disconnect
-  erb :preview, layout: false, locals: {
-    preview: mail.decoded.nil? ? (mail.html_part.nil? ? mail.text_part.decoded : mail.html_part.decoded) : mail.decoded
-  }
+  begin
+    uid = decrypt(params[:uid]).to_i
+    IMAP_POOL.with do |imap|
+      email = imap.fetch(uid, ['ENVELOPE', 'RFC822'])[0]
+      mail = Mail.read_from_string(email.attr['RFC822'])
+      preview = mail.decoded.nil? ? (mail.html_part.nil? ? mail.text_part.decoded : mail.html_part.decoded) : mail.decoded
+      erb :preview, layout: false, locals: { preview: preview }
+    end
+  rescue StandardError => e
+    puts "Preview fetch error: #{e.message}"
+    erb :error, layout: false
+  end
 end
 
 get '/log' do
   history = `tail -n #{LOG_SIZE} #{LOG_FILE}`.split("\n").map { |l| l.split(' - ') }
-  history.each { |l| l << geolocate(l[2]) }
+  
+  # Batch geocoding to improve performance
+  ips_to_geolocate = history.map { |l| l[2] }.uniq
+  geocoded_cache = {}
+  
+  ips_to_geolocate.each do |ip|
+    geocoded_cache[ip] = geolocate(ip)
+  end
+  
+  history.each { |l| l << geocoded_cache[l[2]] }
+  
   erb :log, locals: {
     history: history.reverse
   }
@@ -113,7 +155,7 @@ get '/random/:type' do
   when 'sha256'
     r = Faker::Crypto.sha256
   when 'number'
-    r = Faker::Number.number(10)
+    r = Faker::Number.number(digits: 10)
   when 'ipv4'
     r = Faker::Internet.public_ip_v4_address
   when 'droid'
@@ -141,54 +183,106 @@ end
 public
 
 def qp(str)
+  return '' if str.nil? || str.empty?
   # See also: https://www.rubydoc.info/github/mikel/mail/Mail%2FEncodings.unquote_and_convert_to
   Mail::Encodings.unquote_and_convert_to(str, 'utf-8')
+rescue StandardError => e
+  puts "Encoding error: #{e.message}"
+  str.to_s
 end
 
 def digest(str)
-  Digest::SHA256.hexdigest(str)[0, 12]
+  return '' if str.nil?
+  Digest::SHA256.hexdigest(str.to_s)[0, 12]
 end
 
 def timestamp(str)
+  return 'n.a.' if str.nil? || str.empty?
   dt = DateTime.parse(str)
-  dt.nil? ? 'n.a.' : dt.strftime(DATETIME_FORMAT)
+  dt.strftime(DATETIME_FORMAT)
+rescue ArgumentError
+  'n.a.'
 end
 
 def encrypt(str)
+  return '' if str.nil?
   h = Hashids.new(SALT)
-  h.encode(str)
+  h.encode(str.to_i)
 end
 
 def decrypt(str)
+  return 0 if str.nil? || str.empty?
   h = Hashids.new(SALT)
-  h.decode(str).first
+  result = h.decode(str)
+  result.empty? ? 0 : result.first
 end
 
 def geolocate(keyword)
+  return 'Unknown' if keyword.nil? || keyword.empty?
+  
   result = Geocoder.search(keyword)
-  country = result.first.country
-  (keyword.nil? || country.nil?) ? 'Unknown' : country
+  return 'Unknown' if result.empty?
+  
+  country = result.first&.country
+  country.nil? ? 'Unknown' : country
+rescue StandardError => e
+  puts "Geocoding error: #{e.message}"
+  'Unknown'
 end
 
 private
 
-def log(str, ip, agent)
-  timestamp = Time.now.getutc
-  File.write(LOG_FILE, "#{timestamp} - #{str} - #{ip} - #{agent}\n", mode: 'a')
+def create_imap_connection
+  imap = Net::IMAP.new(MAIL_SERVER, MAIL_PORT, MAIL_USE_SSL)
+  
+  # Try different authentication methods in order of preference
+  auth_methods = [
+    -> { imap.login(MAIL_USERNAME, MAIL_PASSWORD) },
+    -> { imap.authenticate('PLAIN', MAIL_USERNAME, MAIL_PASSWORD) },
+    -> { imap.authenticate('LOGIN', MAIL_USERNAME, MAIL_PASSWORD) },
+    -> { imap.authenticate('CRAM-MD5', MAIL_USERNAME, MAIL_PASSWORD) }
+  ]
+  
+  auth_success = false
+  last_error = nil
+  
+  auth_methods.each do |auth_method|
+    begin
+      auth_method.call
+      auth_success = true
+      puts "Authentication successful"
+      break
+    rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError => e
+      last_error = e
+      puts "Authentication method failed: #{e.message}"
+      next
+    end
+  end
+  
+  unless auth_success
+    imap.disconnect rescue nil
+    raise "All authentication methods failed. Last error: #{last_error&.message}"
+  end
+  
+  imap.select('INBOX')
+  imap
 end
 
-def connect()
+def get_imap_capabilities
   begin
-    imap = Net::IMAP.new(MAIL_SERVER, MAIL_PORT, true)
-    imap.authenticate('LOGIN', MAIL_USERNAME, MAIL_PASSWORD)
-    imap.select('INBOX')
-    imap
+    imap = Net::IMAP.new(MAIL_SERVER, MAIL_PORT, MAIL_USE_SSL)
+    capabilities = imap.capability
+    imap.disconnect
+    capabilities.join(', ')
   rescue StandardError => e
-    puts e.message
-    #puts e.backtrace.inspect
+    "Unable to retrieve capabilities: #{e.message}"
   end
 end
 
-def partial(template, locals)
-  erb(template, layout: false, locals: locals || {})
+def log(str, ip, agent)
+  return if str.nil? || ip.nil? || agent.nil?
+  timestamp = Time.now.getutc
+  File.write(LOG_FILE, "#{timestamp} - #{str} - #{ip} - #{agent}\n", mode: 'a')
+rescue StandardError => e
+  puts "Logging error: #{e.message}"
 end
